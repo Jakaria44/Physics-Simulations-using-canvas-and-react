@@ -63,14 +63,14 @@ const BoatRiver = () => {
 
   useEffect(() => {
     reset();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     let animationFrameId;
     // for storing the values when paused
-    values = bufferValues;
+    values = bufferValues; // eslint-disable-line react-hooks/exhaustive-deps
     const animate = () => {
       values.boatPosition.x += values.boatSpeed.dx;
       values.boatPosition.y -= values.boatSpeed.dy;
