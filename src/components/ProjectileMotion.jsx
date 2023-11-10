@@ -146,15 +146,15 @@ const ProjectileMotion = () => {
       "black"
     );
 
-    // draw dotted line from center of the ball to the end of the canvas
-    ctx.strokeStyle = "black";
-    ctx.beginPath();
-    ctx.setLineDash([5, 5]);
-    ctx.moveTo(values.objectPosition.x, values.objectPosition.y);
-    ctx.lineTo(INITIAL.canvasDimension.x, values.objectPosition.y);
+    // // draw dotted line from center of the ball to the end of the canvas
+    // ctx.strokeStyle = "black";
+    // ctx.beginPath();
+    // ctx.setLineDash([5, 5]);
+    // ctx.moveTo(values.objectPosition.x, values.objectPosition.y);
+    // ctx.lineTo(INITIAL.canvasDimension.x, values.objectPosition.y);
 
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // ctx.stroke();
+    // ctx.setLineDash([]);
     // draw arc of angle
     ctx.strokeStyle = "black";
     ctx.beginPath();
@@ -222,6 +222,15 @@ const ProjectileMotion = () => {
       INITIAL.canvasDimension.y - properties.height,
       2 * objectSize,
       properties.height
+    );
+
+    // Draw angle annotation
+    ctx.fillStyle = "black";
+    ctx.font = "14px Arial";
+    ctx.fillText(
+      `h=${properties.height}`,
+      2.5 * objectSize,
+      INITIAL.canvasDimension.y - properties.height / 2
     );
   };
 
