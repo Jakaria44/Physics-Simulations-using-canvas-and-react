@@ -215,8 +215,6 @@ const BoatRiver = () => {
   };
 
   const motionControl = () => {
-    console.log("in", values.boatPosition.x, values.boatPosition.y, started);
-
     if (!started) {
       start();
     } else {

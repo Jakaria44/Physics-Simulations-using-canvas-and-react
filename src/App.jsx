@@ -1,12 +1,12 @@
-import BoatAndRiver from "./components/BoatAndRiver";
-import BoatRiver from "./components/BoatRiver";
+import ProjectileMotion from "./components/ProjectileMotion";
+// import ProjectileMotion from "./components/Testing";
 
 function App() {
   return (
     <>
       <div>
-        <BoatRiver />
-        {/* <Testing /> */}
+        {/* <BoatRiver /> */}
+        <ProjectileMotion />
       </div>
     </>
   );
