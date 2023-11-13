@@ -81,8 +81,8 @@ const ProjectileMotion = () => {
         points[currentIndex].y >= objectSize
       ) {
         // console.log(points[currentIndex].y, canvas.height - objectSize);
-        const { x, y, vx, vy } = points[currentIndex];
-        render(ctx, canvas, x, canvas.height - y, vx, vy);
+        const { x, y, vx, vy, t } = points[currentIndex];
+        render(ctx, canvas, x, canvas.height - y, vx, vy, t);
         currentIndex += animationSpeed * 4;
         animationFrameId = requestAnimationFrame(animate);
       } else {
@@ -233,7 +233,8 @@ const ProjectileMotion = () => {
       values.objectPosition.x,
       values.objectPosition.y,
       pointsCalculated[0].vx,
-      pointsCalculated[0].vy
+      pointsCalculated[0].vy,
+      pointsCalculated[0].t
     );
   };
 
@@ -253,7 +254,7 @@ const ProjectileMotion = () => {
     setPoints(points);
     return points;
   };
-  const renderAnnotations = (ctx, x, y, vx, vy) => {
+  const renderAnnotations = (ctx, x, y, vx, vy, t) => {
     const currentPosition = { x, y };
     const magnitude = values.objectSpeed.magnitude;
 
@@ -342,12 +343,31 @@ const ProjectileMotion = () => {
 
     // Draw velocity annotation
     ctx.fillText(`Initial Velocity: ${values.objectSpeed.magnitude}`, 20, 40);
+
+    // Draw time annotation
+    ctx.fillText(`Time: ${t.toFixed(2)}s`, ctx.canvas.width - 160, 60);
+
+    // Draw height annotation
+    ctx.fillText(`Height: ${y.toFixed(2)}m`, ctx.canvas.width - 160, 80);
+
+    // Draw range annotation
+    ctx.fillText(`Range: ${x.toFixed(2)}m`, ctx.canvas.width - 160, 100);
+
+    // Draw velocity annotation
+
+    ctx.fillText(`Vx: ${vx.toFixed(2)}m/s`, ctx.canvas.width - 160, 100 + 20);
+    ctx.fillText(`Vy: ${vy.toFixed(2)}m/s`, ctx.canvas.width - 160, 100 + 40);
+    ctx.fillText(
+      `|v|: ${resultantVelocity.toFixed(2)}m/s`,
+      ctx.canvas.width - 160,
+      160
+    );
   };
 
-  const render = (ctx, canvas, x, y, vx, vy) => {
+  const render = (ctx, canvas, x, y, vx, vy, t) => {
     drawOuterStructure(ctx, canvas);
     drawBallObject(ctx, x, y);
-    renderAnnotations(ctx, x, y, vx, vy);
+    renderAnnotations(ctx, x, y, vx, vy, t);
     drawProjectilePath(ctx, canvas, points);
   };
 

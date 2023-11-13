@@ -81,20 +81,36 @@ const Graphs = ({ points }) => {
     ],
   };
   return (
-    <div style={{ display: "flex", flexDirection: "row", margin: "2vh" }}>
-      <div className="graphs" style={{ width: "50%" }}>
-        <CanvasJSChart
-          options={optionsForHeightVsTime}
-          /* onRef = {ref => this.chart = ref} */
-        />
+    <>
+      <div style={{ display: "flex", flexDirection: "row", margin: "2vh" }}>
+        <div className="graphs" style={{ width: "50%" }}>
+          <CanvasJSChart
+            options={optionsForHeightVsTime}
+            /* onRef = {ref => this.chart = ref} */
+          />
+        </div>
+        <div className="graphs" style={{ width: "50%" }}>
+          <CanvasJSChart
+            options={optionsForVerticalVelocityVsTime}
+            /* onRef = {ref => this.chart = ref} */
+          />
+        </div>
       </div>
-      <div className="graphs" style={{ width: "50%" }}>
-        <CanvasJSChart
-          options={optionsForVerticalVelocityVsTime}
-          /* onRef = {ref => this.chart = ref} */
-        />
+      <div style={{ display: "flex", flexDirection: "row", margin: "2vh" }}>
+        <div className="graphs" style={{ width: "50%" }}>
+          <CanvasJSChart
+            options={optionsForHeightVsTime}
+            /* onRef = {ref => this.chart = ref} */
+          />
+        </div>
+        <div className="graphs" style={{ width: "50%" }}>
+          <CanvasJSChart
+            options={optionsForVerticalVelocityVsTime}
+            /* onRef = {ref => this.chart = ref} */
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
