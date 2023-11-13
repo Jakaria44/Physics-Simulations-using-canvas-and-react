@@ -344,21 +344,31 @@ const ProjectileMotion = () => {
     // Draw velocity annotation
     ctx.fillText(`Initial Velocity: ${values.objectSpeed.magnitude}`, 20, 40);
 
+    // ctx.fillText(`g : ${properties.g}m/s^2`, ctx.canvas.width - 160, 20);
+    ctx.fillText(
+      `Radius of Ball : ${objectSize} m`,
+      ctx.canvas.width - 160,
+      40
+    );
+
     // Draw time annotation
-    ctx.fillText(`Time: ${t.toFixed(2)}s`, ctx.canvas.width - 160, 60);
+    ctx.fillText(`Time: ${t.toFixed(2)} s`, ctx.canvas.width - 160, 60);
+    // Draw range annotation
+    ctx.fillText(`x: ${x.toFixed(2)} m`, ctx.canvas.width - 160, 80);
 
     // Draw height annotation
-    ctx.fillText(`Height: ${y.toFixed(2)}m`, ctx.canvas.width - 160, 80);
-
-    // Draw range annotation
-    ctx.fillText(`Range: ${x.toFixed(2)}m`, ctx.canvas.width - 160, 100);
+    ctx.fillText(
+      `y: ${(ctx.canvas.height - y).toFixed(2)} m`,
+      ctx.canvas.width - 160,
+      100
+    );
 
     // Draw velocity annotation
 
-    ctx.fillText(`Vx: ${vx.toFixed(2)}m/s`, ctx.canvas.width - 160, 100 + 20);
-    ctx.fillText(`Vy: ${vy.toFixed(2)}m/s`, ctx.canvas.width - 160, 100 + 40);
+    ctx.fillText(`Vx: ${vx.toFixed(2)} m/s`, ctx.canvas.width - 160, 100 + 20);
+    ctx.fillText(`Vy: ${vy.toFixed(2)} m/s`, ctx.canvas.width - 160, 100 + 40);
     ctx.fillText(
-      `|v|: ${resultantVelocity.toFixed(2)}m/s`,
+      `V: ${resultantVelocity.toFixed(2)} m/s`,
       ctx.canvas.width - 160,
       160
     );
@@ -486,7 +496,15 @@ const ProjectileMotion = () => {
 
   return (
     <div>
-      <div style={{ display: "flex", flexDirection: "row", margin: "2vh" }}>
+      <h1 style={{ textAlign: "center" }}>Projectile Motion</h1>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          margin: "2vh",
+          gap: "3vh",
+        }}
+      >
         <canvas
           ref={canvasRef}
           width={INITIAL.canvasDimension.x}
