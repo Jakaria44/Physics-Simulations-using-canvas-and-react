@@ -336,7 +336,7 @@ const ProjectileMotion = () => {
     ctx.fillStyle = "black";
     ctx.font = "14px Arial";
     ctx.fillText(
-      `Angle: ${(values.objectSpeed.angle * 180) / Math.PI}°`,
+      `Angle: ${((values.objectSpeed.angle * 180) / Math.PI).toFixed(2)}°`,
       20,
       20
     );
