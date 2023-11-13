@@ -43,31 +43,31 @@ export const INITIAL = {
 
 const theta = "θ";
 
-// const getCenterOfBoat = (objectPosition) => ({
-//   x: objectPosition.x + INITIAL.boatSize.x / 2,
-//   y: objectPosition.y + INITIAL.boatSize.y / 2,
-// });
-
 const ProjectileMotion = () => {
   const canvasRef = useRef(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [started, setStarted] = useState(false);
   const [ended, setEnded] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(2);
+  const [animationSpeed, setAnimationSpeed] = useState(1);
   const [bufferIndex, setBufferIndex] = useState(0);
   const [points, setPoints] = useState([]);
-  let values = {
+
+  const [values, setValues] = useState({
     objectPosition: { ...INITIAL.objectPosition },
+    height: properties.height,
     objectSpeed: {
       magnitude: properties.velocity.magnitude,
       angle: (properties.velocity.angle * Math.PI) / 180,
     },
-  };
+  });
 
   useEffect(() => {
     reset();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    reset();
+  }, [values]); // eslint-disable-line react-hooks/exhaustive-deps
   let currentIndex = bufferIndex;
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -76,11 +76,14 @@ const ProjectileMotion = () => {
     // for storing the values when paused
 
     const animate = () => {
-      if (currentIndex < points.length && points[currentIndex].y > objectSize) {
+      if (
+        currentIndex < points.length &&
+        points[currentIndex].y >= objectSize
+      ) {
         // console.log(points[currentIndex].y, canvas.height - objectSize);
-        const { x, y, vy } = points[currentIndex];
-        render(ctx, canvas, x, canvas.height - y, vy);
-        currentIndex += animationSpeed;
+        const { x, y, vx, vy } = points[currentIndex];
+        render(ctx, canvas, x, canvas.height - y, vx, vy);
+        currentIndex += animationSpeed * 4;
         animationFrameId = requestAnimationFrame(animate);
       } else {
         setIsAnimating(false);
@@ -165,10 +168,14 @@ const ProjectileMotion = () => {
     const radians = launchAngle;
     const cosTheta = Math.cos(radians);
     const tanTheta = Math.tan(radians);
+    const sinTheta = Math.sin(radians);
     const v0squared = Math.pow(initialVelocity, 2);
 
-    let x = 0;
-    let y = 0;
+    let x = 0,
+      y = 0,
+      vx = 0,
+      vy = 0;
+
     const points = [];
 
     for (let t = 0; y >= 0; t += timeStep) {
@@ -177,13 +184,14 @@ const ProjectileMotion = () => {
         x * tanTheta -
         (g * Math.pow(x, 2)) / (2 * v0squared * Math.pow(cosTheta, 2)) +
         initialHeight;
-
+      vx = initialVelocity * cosTheta;
+      vy = initialVelocity * sinTheta - properties.g * t;
       points.push({
         x: x * scale + objectSize,
         y: y * scale + objectSize,
-        vy:
-          initialVelocity * Math.sin(values.objectSpeed.angle) -
-          properties.g * t,
+        vx: vx,
+        vy: vy,
+
         t: t,
       });
     }
@@ -209,11 +217,12 @@ const ProjectileMotion = () => {
     setEnded(false);
     setIsAnimating(false);
     setStarted(false);
+    setBufferIndex(0);
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawOuterStructure(ctx, canvas);
-    drawBallObject(ctx, INITIAL.objectPosition.x, INITIAL.objectPosition.y);
+    drawBallObject(ctx, values.objectPosition.x, values.objectPosition.y);
     // drawPath(ctx, canvas);
     // values.objectSpeed = { ...INITIAL.objectSpeed };
 
@@ -221,8 +230,9 @@ const ProjectileMotion = () => {
     drawProjectilePath(ctx, canvas, pointsCalculated);
     renderAnnotations(
       ctx,
-      INITIAL.objectPosition.x,
-      INITIAL.objectPosition.y,
+      values.objectPosition.x,
+      values.objectPosition.y,
+      pointsCalculated[0].vx,
       pointsCalculated[0].vy
     );
   };
@@ -231,7 +241,7 @@ const ProjectileMotion = () => {
     // Example usage
     const initialVelocity = values.objectSpeed.magnitude;
     const launchAngle = values.objectSpeed.angle; // in radians
-    const initialHeight = properties.height / scale; // in meters
+    const initialHeight = values.height / scale; // in meters
     const timeStep = 0.05; // in seconds
     const points = simulateProjectileEquation(
       initialVelocity,
@@ -243,10 +253,9 @@ const ProjectileMotion = () => {
     setPoints(points);
     return points;
   };
-  const renderAnnotations = (ctx, x, y, vy) => {
+  const renderAnnotations = (ctx, x, y, vx, vy) => {
     const currentPosition = { x, y };
     const magnitude = values.objectSpeed.magnitude;
-    const vx = magnitude * Math.cos(values.objectSpeed.angle);
 
     // vx arrow:
     // drawArrowByAngle(ctx, currentPosition, 0, vx, 15, "green");
@@ -325,16 +334,20 @@ const ProjectileMotion = () => {
     // Draw angle annotation
     ctx.fillStyle = "black";
     ctx.font = "14px Arial";
-    ctx.fillText(`Angle: ${properties.velocity.angle}°`, 20, 20);
+    ctx.fillText(
+      `Angle: ${(values.objectSpeed.angle * 180) / Math.PI}°`,
+      20,
+      20
+    );
 
     // Draw velocity annotation
-    ctx.fillText(`Initial Velocity: ${properties.velocity.magnitude}`, 20, 40);
+    ctx.fillText(`Initial Velocity: ${values.objectSpeed.magnitude}`, 20, 40);
   };
 
-  const render = (ctx, canvas, x, y, vy) => {
+  const render = (ctx, canvas, x, y, vx, vy) => {
     drawOuterStructure(ctx, canvas);
     drawBallObject(ctx, x, y);
-    renderAnnotations(ctx, x, y, vy);
+    renderAnnotations(ctx, x, y, vx, vy);
     drawProjectilePath(ctx, canvas, points);
   };
 
@@ -356,18 +369,18 @@ const ProjectileMotion = () => {
     ctx.fillStyle = "#c2b280";
     ctx.fillRect(
       0,
-      INITIAL.canvasDimension.y - properties.height,
+      INITIAL.canvasDimension.y - values.height,
       2 * objectSize,
-      properties.height
+      values.height
     );
 
     // Draw angle annotation
     ctx.fillStyle = "black";
     ctx.font = "14px Arial";
     ctx.fillText(
-      `h=${properties.height}`,
+      `h=${values.height}`,
       2.5 * objectSize,
-      INITIAL.canvasDimension.y - properties.height / 2
+      INITIAL.canvasDimension.y - values.height / 2
     );
   };
 
@@ -386,20 +399,115 @@ const ProjectileMotion = () => {
     }
   };
 
+  const Controls = () => {
+    const submitHandler = (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const speed = formData.get("speed");
+      const angle = formData.get("angle");
+      const height = formData.get("height");
+      console.log(speed, angle, height);
+      setValues((prev) => ({
+        objectPosition: {
+          x: objectSize,
+          y: 400 - objectSize - height,
+        },
+        objectSpeed: {
+          magnitude: speed,
+          angle: (angle * Math.PI) / 180,
+        },
+        height: height,
+      }));
+    };
+    return (
+      <form
+        onSubmit={submitHandler}
+        style={{ display: "flex", flexDirection: "column", gap: "1vh" }}
+      >
+        <div style={{ display: "flex", flexDirection: "row", gap: "1vh" }}>
+          <label htmlFor="speed">Speed of Throw in m/s</label>
+          <input
+            type="number"
+            defaultValue={properties.velocity.magnitude}
+            max={500}
+            min={0}
+            name="speed"
+            placeholder="Speed of Throw in m/s"
+            id="speed"
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "row", gap: "1vh" }}>
+          <label htmlFor="speed">Angle of Throw in degree</label>
+          <input
+            type="number"
+            name="angle"
+            defaultValue={properties.velocity.angle}
+            max={90}
+            min={-90}
+            placeholder="Angle of Throw in degrees"
+          />
+        </div>
+        <div style={{ display: "flex", flexDirection: "row", gap: "1vh" }}>
+          <label htmlFor="speed">initial height in meters </label>
+          <input
+            type="number"
+            name="height"
+            defaultValue={properties.height}
+            max={400}
+            min={0}
+            placeholder="initial height in meters"
+          />
+        </div>
+        <button type="submit ">calculate</button>
+      </form>
+    );
+  };
+
   return (
     <div>
-      <canvas
-        ref={canvasRef}
-        width={INITIAL.canvasDimension.x}
-        height={INITIAL.canvasDimension.y}
-      />
+      <div style={{ display: "flex", flexDirection: "row", margin: "2vh" }}>
+        <canvas
+          ref={canvasRef}
+          width={INITIAL.canvasDimension.x}
+          height={INITIAL.canvasDimension.y}
+        />
+        <div style={{ display: "flex", flexDirection: "column", gap: "1vh" }}>
+          {Controls()}
+          <div style={{ display: "flex", flexDirection: "row", gap: "1vh" }}>
+            <label htmlFor="speed">Animation Speed : {animationSpeed}x </label>
+            <button
+              disabled={animationSpeed <= 0.25}
+              onClick={() => {
+                if (animationSpeed > 0.25)
+                  setAnimationSpeed((prev) => prev - 0.25);
+                setBufferIndex(currentIndex);
+                setIsAnimating(false);
+              }}
+            >
+              {"<<"}
+            </button>
+            <button
+              disabled={animationSpeed >= 2}
+              onClick={() => {
+                if (animationSpeed <= 2)
+                  setAnimationSpeed((prev) => prev + 0.25);
+                setBufferIndex(currentIndex);
+                setIsAnimating(false);
+              }}
+            >
+              {">>"}{" "}
+            </button>
+          </div>
+          <button onClick={motionControl} disabled={ended}>
+            {started ? (isAnimating ? "Pause" : "Resume") : "Start"}
+          </button>
+          <button onClick={reset}>Reset</button>
+        </div>
+      </div>
       <br />
       <br />
 
-      <button onClick={motionControl} disabled={ended}>
-        {started ? (isAnimating ? "Pause" : "Resume") : "Start"}
-      </button>
-      <button onClick={reset}>Reset</button>
       <br />
       <Graphs points={points} />
     </div>
