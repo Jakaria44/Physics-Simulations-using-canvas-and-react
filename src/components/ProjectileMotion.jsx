@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { drawArrowByAngle } from "../utils/drawArrow";
+import drawArrow, { drawArrowByAngle } from "../utils/drawArrow";
+
+import Graphs from "./Graphs";
+//var CanvasJSReact = require('@canvasjs/react-charts');
 
 // constants
 
@@ -16,7 +19,7 @@ const properties = {
 const scale = 0.1;
 
 const objectSize = 10; //radius
-const INITIAL = {
+export const INITIAL = {
   canvasDimension: {
     x: 700,
     y: 400,
@@ -50,43 +53,46 @@ const ProjectileMotion = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [started, setStarted] = useState(false);
   const [ended, setEnded] = useState(false);
-  const [bufferValues, setBufferValues] = useState({
-    objectPosition: { ...INITIAL.objectPosition },
-    objectSpeed: { ...INITIAL.objectSpeed },
-  });
-
+  const [animationSpeed, setAnimationSpeed] = useState(2);
+  const [bufferIndex, setBufferIndex] = useState(0);
+  const [points, setPoints] = useState([]);
   let values = {
     objectPosition: { ...INITIAL.objectPosition },
-    objectSpeed: { ...INITIAL.objectSpeed },
+    objectSpeed: {
+      magnitude: properties.velocity.magnitude,
+      angle: (properties.velocity.angle * Math.PI) / 180,
+    },
   };
 
   useEffect(() => {
     reset();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  let currentIndex = bufferIndex;
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     let animationFrameId;
     // for storing the values when paused
-    values = bufferValues; // eslint-disable-line react-hooks/exhaustive-deps
+
     const animate = () => {
-      // update
-      values.objectSpeed.dy -= properties.g * scale;
-      values.objectSpeed.angle = Math.atan(
-        values.objectSpeed.dy / values.objectSpeed.dx // in radians
-      );
-      values.objectPosition.x += values.objectSpeed.dx;
-      values.objectPosition.y -= values.objectSpeed.dy;
-      render(ctx, canvas);
-      if (boundaryCheck()) {
+      if (currentIndex < points.length && points[currentIndex].y > objectSize) {
+        // console.log(points[currentIndex].y, canvas.height - objectSize);
+        const { x, y, vy } = points[currentIndex];
+        render(ctx, canvas, x, canvas.height - y, vy);
+        currentIndex += animationSpeed;
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
         setIsAnimating(false);
         setEnded(true);
-        return;
       }
-      animationFrameId = requestAnimationFrame(animate);
     };
-    if (isAnimating) animate();
+    drawProjectilePath(ctx, canvas, points);
+
+    if (isAnimating) {
+      currentIndex = bufferIndex;
+      animate();
+    }
 
     return () => {
       window.cancelAnimationFrame(animationFrameId);
@@ -95,72 +101,208 @@ const ProjectileMotion = () => {
 
   // rendering functions
 
+  // const drawPath = (ctx, canvas) => {
+  //   let points = [];
+  //   let { x, y } = INITIAL.objectPosition;
+  //   points.push({ x, y });
+  //   let tempPoint = { x, y };
+  //   console.log(values.objectSpeed);
+
+  //   while (tempPoint.y <= canvas.height - objectSize) {
+  //     tempPoint.x += values.objectSpeed.dx / scale;
+  //     tempPoint.y -= values.objectSpeed.dy / scale;
+  //     values.objectSpeed.dy -= properties.g;
+  //     points.push({ ...tempPoint });
+  //     // console.log(tempPoint.y, canvas.height - objectSize);
+  //   }
+
+  //   console.log(points);
+
+  //   // draw curve using points array
+  //   // Draw the curve
+  //   ctx.beginPath();
+  //   ctx.moveTo(points[0].x, points[0].y);
+
+  //   for (let i = 1; i < points.length - 2; i++) {
+  //     const xc = (points[i].x + points[i + 1].x) / 2;
+  //     const yc = (points[i].y + points[i + 1].y) / 2;
+  //     ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+  //   }
+
+  //   // curve through the last two points
+  //   ctx.quadraticCurveTo(
+  //     points[points.length - 2].x,
+  //     points[points.length - 2].y,
+  //     points[points.length - 1].x,
+  //     points[points.length - 1].y
+  //   );
+
+  //   // Set the line color and width
+  //   ctx.strokeStyle = "blue";
+  //   ctx.lineWidth = 2;
+
+  //   // Stroke the curve
+  //   ctx.stroke();
+  // };
+
+  // Function to simulate the projectile motion
+  /**
+   *
+   * @param {number} initialVelocity initial velocity in meters
+   * @param {number} launchAngle initial angle in radians
+   * @param {number} initialHeight initial height in meters
+   * @param {number} timeStep for simulation
+   * @param {number} scale for better viewing
+   * @returns {Array} array of points
+   */
+  function simulateProjectileEquation(
+    initialVelocity,
+    launchAngle,
+    initialHeight,
+    timeStep
+  ) {
+    const g = 9.8; // Acceleration due to gravity (m/s^2)
+    const radians = launchAngle;
+    const cosTheta = Math.cos(radians);
+    const tanTheta = Math.tan(radians);
+    const v0squared = Math.pow(initialVelocity, 2);
+
+    let x = 0;
+    let y = 0;
+    const points = [];
+
+    for (let t = 0; y >= 0; t += timeStep) {
+      x = initialVelocity * cosTheta * t;
+      y =
+        x * tanTheta -
+        (g * Math.pow(x, 2)) / (2 * v0squared * Math.pow(cosTheta, 2)) +
+        initialHeight;
+
+      points.push({
+        x: x * scale + objectSize,
+        y: y * scale + objectSize,
+        vy:
+          initialVelocity * Math.sin(values.objectSpeed.angle) -
+          properties.g * t,
+        t: t,
+      });
+    }
+
+    return points;
+  }
+
+  // Function to draw the projectile path on the canvas
+  function drawProjectilePath(ctx, canvas, points) {
+    if (points.length == 0) return;
+    // console.log(points);
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, canvas.height - points[0].y);
+
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, canvas.height - points[i].y);
+    }
+
+    ctx.stroke();
+  }
+
   const reset = () => {
     setEnded(false);
     setIsAnimating(false);
     setStarted(false);
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    values.objectPosition = { ...INITIAL.objectPosition };
-    values.objectSpeed = { ...INITIAL.objectSpeed };
 
     drawOuterStructure(ctx, canvas);
-    drawBallObject(ctx);
-    renderAnnotations(ctx, canvas);
+    drawBallObject(ctx, INITIAL.objectPosition.x, INITIAL.objectPosition.y);
+    // drawPath(ctx, canvas);
+    // values.objectSpeed = { ...INITIAL.objectSpeed };
+
+    const pointsCalculated = calculatePoints();
+    drawProjectilePath(ctx, canvas, pointsCalculated);
+    renderAnnotations(
+      ctx,
+      INITIAL.objectPosition.x,
+      INITIAL.objectPosition.y,
+      pointsCalculated[0].vy
+    );
   };
 
-  const renderAnnotations = (ctx) => {
+  const calculatePoints = () => {
+    // Example usage
+    const initialVelocity = values.objectSpeed.magnitude;
+    const launchAngle = values.objectSpeed.angle; // in radians
+    const initialHeight = properties.height / scale; // in meters
+    const timeStep = 0.05; // in seconds
+    const points = simulateProjectileEquation(
+      initialVelocity,
+      launchAngle,
+      initialHeight,
+      timeStep
+    );
+    console.log(points);
+    setPoints(points);
+    return points;
+  };
+  const renderAnnotations = (ctx, x, y, vy) => {
+    const currentPosition = { x, y };
+    const magnitude = values.objectSpeed.magnitude;
+    const vx = magnitude * Math.cos(values.objectSpeed.angle);
+
     // vx arrow:
-    drawArrowByAngle(
+    // drawArrowByAngle(ctx, currentPosition, 0, vx, 15, "green");
+    drawArrow(
       ctx,
-      values.objectPosition,
-      0,
-      values.objectSpeed.dx / scale,
-      15,
+      currentPosition,
+      new Object({ x: currentPosition.x + vx, y: currentPosition.y }),
+      10,
       "green"
     );
 
     // vy arrow:
-    drawArrowByAngle(
+    // drawArrowByAngle(ctx, currentPosition, -Math.PI / 2, vy, 15, "blue");
+    drawArrow(
       ctx,
-      values.objectPosition,
-      Math.PI / 2,
-      values.objectSpeed.dy / scale,
-      15,
+      currentPosition,
+      new Object({ x: currentPosition.x, y: currentPosition.y - vy }),
+      10,
       "blue"
     );
 
     // resultant velocity arrow
-    const resultantVelocity = Math.sqrt(
-      Math.pow(values.objectSpeed.dx / scale, 2) +
-        Math.pow(values.objectSpeed.dy / scale, 2)
-    );
-    const resultantAngle = values.objectSpeed.angle;
-    console.log(resultantAngle);
+    const resultantVelocity = Math.sqrt(Math.pow(vx, 2) + Math.pow(vy, 2));
+    const resultantAngle = Math.atan(vy / vx);
+    // console.log(resultantAngle);
     drawArrowByAngle(
       ctx,
-      values.objectPosition,
+      currentPosition,
       resultantAngle,
       resultantVelocity,
       15,
       "black"
     );
 
-    // // draw dotted line from center of the ball to the end of the canvas
-    // ctx.strokeStyle = "black";
-    // ctx.beginPath();
-    // ctx.setLineDash([5, 5]);
-    // ctx.moveTo(values.objectPosition.x, values.objectPosition.y);
-    // ctx.lineTo(INITIAL.canvasDimension.x, values.objectPosition.y);
+    // draw dotted line from center of the ball to the end of the canvas
+    ctx.strokeStyle = "black";
+    ctx.beginPath();
+    ctx.setLineDash([5, 5]);
+    ctx.moveTo(values.objectPosition.x, values.objectPosition.y);
+    ctx.lineTo(INITIAL.canvasDimension.x, values.objectPosition.y);
+    ctx.stroke();
+    // draw dotted line to show the ground level for the ball object to fall
+    ctx.moveTo(0, INITIAL.canvasDimension.y - objectSize);
+    ctx.lineTo(
+      INITIAL.canvasDimension.x,
+      INITIAL.canvasDimension.y - objectSize
+    );
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-    // ctx.stroke();
-    // ctx.setLineDash([]);
     // draw arc of angle
     ctx.strokeStyle = "black";
     ctx.beginPath();
     ctx.arc(
-      values.objectPosition.x,
-      values.objectPosition.y,
+      currentPosition.x,
+      currentPosition.y,
       50,
       resultantAngle > 0 ? 0 : -resultantAngle,
       resultantAngle > 0 ? -resultantAngle : 0,
@@ -170,15 +312,15 @@ const ProjectileMotion = () => {
 
     // Draw the text (theta) just outside the arc
 
-    const textX =
-      values.objectPosition.x +
-      (values.objectSpeed.angle > Math.PI / 2 ? 40 : 60); // Adjust the X-coordinate as needed
-    const textY =
-      values.objectPosition.y -
-      (values.objectSpeed.angle > Math.PI / 2 ? 50 : 30); // Keep it close to the arc
-    ctx.font = "24px Arial"; // Adjust the font size and family as needed
+    const textX = currentPosition.x + 50; // Adjust the X-coordinate as needed
+    const textY = currentPosition.y - (resultantAngle > 0 ? 20 : 10); // Keep it close to the arc
+    ctx.font = "14px Arial"; // Adjust the font size and family as needed
     ctx.fillStyle = "black"; // Set the text color
-    ctx.fillText(theta, textX, textY);
+    ctx.fillText(
+      `${theta} : ${((resultantAngle * 180) / Math.PI).toFixed(1)}°`,
+      textX,
+      textY
+    );
 
     // Draw angle annotation
     ctx.fillStyle = "black";
@@ -189,22 +331,17 @@ const ProjectileMotion = () => {
     ctx.fillText(`Initial Velocity: ${properties.velocity.magnitude}`, 20, 40);
   };
 
-  const render = (ctx, canvas) => {
+  const render = (ctx, canvas, x, y, vy) => {
     drawOuterStructure(ctx, canvas);
-    drawBallObject(ctx);
-    renderAnnotations(ctx);
+    drawBallObject(ctx, x, y);
+    renderAnnotations(ctx, x, y, vy);
+    drawProjectilePath(ctx, canvas, points);
   };
 
-  const drawBallObject = (ctx) => {
+  const drawBallObject = (ctx, x, y) => {
     ctx.fillStyle = "red";
     ctx.beginPath();
-    ctx.arc(
-      values.objectPosition.x,
-      values.objectPosition.y,
-      objectSize,
-      0,
-      2 * Math.PI
-    );
+    ctx.arc(x, y, objectSize, 0, 2 * Math.PI);
     ctx.fill();
   };
   const drawOuterStructure = (ctx, canvas) => {
@@ -240,15 +377,11 @@ const ProjectileMotion = () => {
     setStarted(true);
   };
 
-  const boundaryCheck = () =>
-    // values.objectPosition.x >= INITIAL.riverSize.width ||
-    values.objectPosition.y >= INITIAL.canvasDimension.y - objectSize;
-
   const motionControl = () => {
     if (!started) {
       start();
     } else {
-      setBufferValues(values);
+      setBufferIndex(currentIndex);
       setIsAnimating(!isAnimating);
     }
   };
@@ -267,6 +400,8 @@ const ProjectileMotion = () => {
         {started ? (isAnimating ? "Pause" : "Resume") : "Start"}
       </button>
       <button onClick={reset}>Reset</button>
+      <br />
+      <Graphs points={points} />
     </div>
   );
 };

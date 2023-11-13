@@ -27,17 +27,6 @@ const INITIAL = {
     x: 270,
     y: 340,
   },
-  boatSpeed: {
-    angle: velocities.boat.angle,
-    dx:
-      velocities.boat.magnitude *
-      scale *
-      Math.cos((velocities.boat.angle * Math.PI) / 180),
-    dy:
-      velocities.boat.magnitude *
-      scale *
-      Math.sin((velocities.boat.angle * Math.PI) / 180),
-  },
 };
 
 const theta = "θ";
@@ -46,7 +35,7 @@ const getCenterOfBoat = (boatPosition) => ({
   y: boatPosition.y + INITIAL.boatSize.y / 2,
 });
 
-const BoatRiver = () => {
+const BoatRiver = ({ magnitude, angle }) => {
   const canvasRef = useRef(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [started, setStarted] = useState(false);
@@ -60,10 +49,14 @@ const BoatRiver = () => {
     boatPosition: { ...INITIAL.boatPosition },
     boatSpeed: { ...INITIAL.boatSpeed },
   };
-
-  useEffect(() => {
-    reset();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  (INITIAL.boatSpeed = {
+    angle: angle,
+    dx: magnitude * scale * Math.cos((angle * Math.PI) / 180),
+    dy: magnitude * scale * Math.sin((angle * Math.PI) / 180),
+  }),
+    useEffect(() => {
+      reset();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const canvas = canvasRef.current;
